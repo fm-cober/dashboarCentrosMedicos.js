@@ -1,0 +1,154 @@
+"use client"
+
+import { useEffect, useState, useMemo } from "react"
+import type { ApiResponse, FilterParams, Turno } from "@/types/turno"
+import { FiltersBar } from "@/components/dashboard/filters-bar"
+import { KpiCard } from "@/components/dashboard/kpi-card"
+import { EstadoChart } from "@/components/dashboard/estado-chart"
+import { TimelineChart } from "@/components/dashboard/timeline-chart"
+import { CentroChart } from "@/components/dashboard/centro-chart"
+import { EspecialidadChart } from "@/components/dashboard/especialidad-chart"
+import { TurnosTable } from "@/components/dashboard/turnos-table"
+import { uniqueValues } from "@/lib/helpers"
+import { FileText, CheckCircle, TrendingUp, Stethoscope, Loader2 } from "lucide-react"
+
+const API_URL =
+  "https://script.google.com/macros/s/AKfycbyjwSL-s7gDHXiV9dJ1Qb6Fm0V6WTOOMq6dvJyZbflxbQ8tttmsmRBmNCma8Yd4bKiF-A/exec"
+
+export default function DashboardPage() {
+  const [data, setData] = useState<Turno[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [filters, setFilters] = useState<FilterParams>({})
+
+  const fetchData = async (filterParams: FilterParams = {}) => {
+    setLoading(true)
+    setError(null)
+
+    try {
+      const params = new URLSearchParams()
+      if (filterParams.from) params.append("from", filterParams.from)
+      if (filterParams.to) params.append("to", filterParams.to)
+      if (filterParams.centro) {
+        filterParams.centro.forEach((c) => params.append("centro", c))
+      }
+      if (filterParams.especialidad) {
+        filterParams.especialidad.forEach((e) => params.append("especialidad", e))
+      }
+      if (filterParams.estado) {
+        filterParams.estado.forEach((e) => params.append("estado", e))
+      }
+
+      const url = params.toString() ? `${API_URL}?${params.toString()}` : API_URL
+      const response = await fetch(url)
+
+      if (!response.ok) {
+        throw new Error("Error al cargar los datos")
+      }
+
+      const result: ApiResponse = await response.json()
+
+      if (result.ok) {
+        setData(result.data)
+      } else {
+        throw new Error("La respuesta del servidor no fue exitosa")
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Error desconocido")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchData()
+  }, [])
+
+  const allData = useMemo(() => data, [data])
+
+  const centros = useMemo(() => uniqueValues(allData, "centro"), [allData])
+  const especialidades = useMemo(() => uniqueValues(allData, "especialidad"), [allData])
+  const estados = useMemo(() => uniqueValues(allData, "estado"), [allData])
+
+  const kpis = useMemo(() => {
+    const totalSolicitudes = data.length
+    const turnosConfirmados = data.filter((t) => t.estado.toLowerCase().includes("asignado")).length
+    const tasaConversion = totalSolicitudes > 0 ? ((turnosConfirmados / totalSolicitudes) * 100).toFixed(1) : "0"
+    const especialidadesActivas = uniqueValues(data, "especialidad").length
+
+    return {
+      totalSolicitudes,
+      turnosConfirmados,
+      tasaConversion,
+      especialidadesActivas,
+    }
+  }, [data])
+
+  const handleApplyFilters = (newFilters: FilterParams) => {
+    setFilters(newFilters)
+    fetchData(newFilters)
+  }
+
+  const handleClearFilters = () => {
+    setFilters({})
+    fetchData()
+  }
+
+  if (error) {
+    return (
+      <div className="flex min-h-screen items-center justify-center p-8">
+        <div className="rounded-lg border border-destructive bg-destructive/10 p-6 text-center">
+          <p className="text-destructive">Error: {error}</p>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="min-h-screen bg-background">
+      <div className="container mx-auto space-y-6 p-6 lg:p-8">
+        <div className="space-y-2">
+          <h1 className="text-3xl font-bold tracking-tight text-balance">
+            Gestión de <span className="text-primary">Centros Médicos</span>
+          </h1>
+          <p className="text-muted-foreground">Gestión y análisis de solicitudes de turnos médicos</p>
+        </div>
+
+        <FiltersBar
+          centros={centros}
+          especialidades={especialidades}
+          estados={estados}
+          onApplyFilters={handleApplyFilters}
+          onClearFilters={handleClearFilters}
+        />
+
+        {loading ? (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          </div>
+        ) : (
+          <>
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+              <KpiCard title="Total de solicitudes" value={kpis.totalSolicitudes.toLocaleString()} icon={FileText} />
+              <KpiCard title="Turnos confirmados" value={kpis.turnosConfirmados.toLocaleString()} icon={CheckCircle} />
+              <KpiCard title="Tasa de conversión" value={`${kpis.tasaConversion}%`} icon={TrendingUp} />
+              <KpiCard title="Especialidades activas" value={kpis.especialidadesActivas} icon={Stethoscope} />
+            </div>
+
+            <div className="grid gap-4 lg:grid-cols-2">
+              <EstadoChart data={data} />
+              <TimelineChart data={data} />
+            </div>
+
+            <div className="grid gap-4 lg:grid-cols-2">
+              <CentroChart data={data} />
+              <EspecialidadChart data={data} />
+            </div>
+
+            <TurnosTable data={data} />
+          </>
+        )}
+      </div>
+    </div>
+  )
+}
