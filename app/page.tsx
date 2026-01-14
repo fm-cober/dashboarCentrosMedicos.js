@@ -27,16 +27,19 @@ export default function DashboardPage() {
 
     try {
       const params = new URLSearchParams()
-      if (filterParams.from) params.append("from", filterParams.from)
-      if (filterParams.to) params.append("to", filterParams.to)
-      if (filterParams.centro) {
-        filterParams.centro.forEach((c) => params.append("centro", c))
+
+      if (filterParams.from) params.set("from", filterParams.from)
+      if (filterParams.to) params.set("to", filterParams.to)
+
+      // ✅ Backend espera CSV (no repetir query params)
+      if (filterParams.centro?.length) {
+        params.set("centro", filterParams.centro.join(","))
       }
-      if (filterParams.especialidad) {
-        filterParams.especialidad.forEach((e) => params.append("especialidad", e))
+      if (filterParams.especialidad?.length) {
+        params.set("especialidad", filterParams.especialidad.join(","))
       }
-      if (filterParams.estado) {
-        filterParams.estado.forEach((e) => params.append("estado", e))
+      if (filterParams.estado?.length) {
+        params.set("estado", filterParams.estado.join(","))
       }
 
       const url = params.toString() ? `${API_URL}?${params.toString()}` : API_URL
@@ -66,13 +69,14 @@ export default function DashboardPage() {
 
   const allData = useMemo(() => data, [data])
 
+  // Opciones de filtros (se recalculan sobre data actual)
   const centros = useMemo(() => uniqueValues(allData, "centro"), [allData])
   const especialidades = useMemo(() => uniqueValues(allData, "especialidad"), [allData])
   const estados = useMemo(() => uniqueValues(allData, "estado"), [allData])
 
   const kpis = useMemo(() => {
     const totalSolicitudes = data.length
-    const turnosConfirmados = data.filter((t) => t.estado.toLowerCase().includes("asignado")).length
+    const turnosConfirmados = data.filter((t) => (t.estado || "").toLowerCase().includes("asignado")).length
     const tasaConversion = totalSolicitudes > 0 ? ((turnosConfirmados / totalSolicitudes) * 100).toFixed(1) : "0"
     const especialidadesActivas = uniqueValues(data, "especialidad").length
 
