@@ -31,7 +31,13 @@ export function TimelineChart({ data }: TimelineChartProps) {
                 borderRadius: "8px",
               }}
             />
-            <Line type="monotone" dataKey="value" stroke="hsl(var(--primary))" strokeWidth={2} dot={{ r: 4 }} />
+            <Line
+              type="monotone"
+              dataKey="value"
+              stroke="hsl(var(--foreground))"
+              strokeWidth={2}
+              dot={{ r: 3, fill: "hsl(var(--foreground))" }}
+            />
           </LineChart>
         </ResponsiveContainer>
       </CardContent>
