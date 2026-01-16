@@ -191,9 +191,15 @@ export function EspecialidadesView() {
                   {pageRows.map((r, idx) => (
                     <TableRow key={idx}>
                       {columns.map((c) => (
-                        <TableCell key={c} className="whitespace-nowrap p-2 text-xs">
-                          {formatCell(r?.[c])}
+                        <TableCell
+                          key={c}
+                          className="whitespace-nowrap p-2 text-xs text-center align-middle"
+                        >
+                          <span className="inline-flex w-full items-center justify-center">
+                            {formatCell(r?.[c])}
+                          </span>
                         </TableCell>
+
                       ))}
                     </TableRow>
                   ))}
