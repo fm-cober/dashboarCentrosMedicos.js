@@ -222,11 +222,6 @@ export default function DashboardPage() {
                 title="Especialidades activas"
                 value={kpis.especialidadesActivas}
                 icon={Stethoscope}
-                comparison={
-                  kpis.hasComparison && kpis.comparisons.especialidadesActivas !== null
-                    ? { percentChange: kpis.comparisons.especialidadesActivas, label: "vs mes anterior" }
-                    : null
-                }
               />
             </div>
 
