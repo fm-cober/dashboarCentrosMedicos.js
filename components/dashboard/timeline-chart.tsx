@@ -45,7 +45,7 @@ export function TimelineChart({ data }: TimelineChartProps) {
               type="step"
               dataKey="value"
               stroke="#000" // ✅ negro puro (visible)
-              strokeWidth={3} // ✅ más gruesa
+              strokeWidth={1} // ✅ más gruesa
               dot={false}
               activeDot={{ r: 5 }}
               connectNulls
