@@ -181,7 +181,13 @@ export default function DashboardPage() {
           </div>
 
           <div className="flex gap-2 sm:pt-1">
-
+            <Button
+              variant={view === "dashboard" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setView("dashboard")}
+            >
+              Volver
+            </Button>
 
             <Button
               variant={view === "especialidades" ? "default" : "outline"}
