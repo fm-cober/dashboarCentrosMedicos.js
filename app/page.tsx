@@ -228,18 +228,18 @@ export default function DashboardPage() {
 
               {/* Charts */}
               <div className="grid gap-4 lg:grid-cols-2">
-                <EstadoChart data={data} />
                 <CentroChart data={data} />
+                <EstadoChart data={data} />
+              </div>
+
+              <div className="grid gap-4 lg:grid-cols-2">
+                <TurnosSinFechaChart data={data} />
+                <EspecialidadChart data={data} />
               </div>
 
               {/* ✅ Full width: Timeline */}
               <div className="grid gap-4">
                 <TimelineChart data={data} />
-              </div>
-
-              <div className="grid gap-4 lg:grid-cols-2">
-                <EspecialidadChart data={data} />
-                <TurnosSinFechaChart data={data} />
               </div>
 
               {/* Tabla */}
