@@ -136,7 +136,7 @@ export function CoberturasView() {
   return (
     <Card>
       <CardHeader className="space-y-3">
-        <div className="flex items-center justify-between gap-3">
+        <div className="flex items-left justify-between gap-3">
           <CardTitle>Coberturas</CardTitle>
           <div className="text-xs text-muted-foreground">
             {loading ? "Cargando..." : `${filtered.length.toLocaleString()} registros`}
