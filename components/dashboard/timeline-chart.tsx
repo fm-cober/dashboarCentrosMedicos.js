@@ -11,13 +11,23 @@ interface TimelineChartProps {
 }
 
 export function TimelineChart({ data }: TimelineChartProps) {
-  const chartData = useMemo(() => groupByDay(data), [data])
+  const chartData = useMemo(() => {
+    const grouped = groupByDay(data)
+
+    // ✅ orden por fecha asc (clave para que "una" con linea bien)
+    return [...grouped].sort((a, b) => {
+      const ta = Date.parse(a.date)
+      const tb = Date.parse(b.date)
+      return ta - tb
+    })
+  }, [data])
 
   return (
     <Card>
       <CardHeader>
         <CardTitle className="text-base">Solicitudes en el tiempo</CardTitle>
       </CardHeader>
+
       <CardContent>
         <ResponsiveContainer width="100%" height={300}>
           <LineChart data={chartData}>
@@ -31,12 +41,15 @@ export function TimelineChart({ data }: TimelineChartProps) {
                 borderRadius: "8px",
               }}
             />
+
             <Line
               type="monotone"
               dataKey="value"
-              stroke="hsl(var(--foreground))"
+              stroke="hsl(var(--foreground))" // ✅ negro (según tema)
               strokeWidth={2}
-              dot={{ r: 3, fill: "hsl(var(--foreground))" }}
+              dot={false} // ✅ sin puntos
+              activeDot={{ r: 4 }} // ✅ solo al hover
+              connectNulls
             />
           </LineChart>
         </ResponsiveContainer>
