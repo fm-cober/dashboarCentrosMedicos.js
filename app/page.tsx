@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useMemo } from "react"
 import type { ApiResponse, FilterParams, Turno } from "@/types/turno"
+
 import { FiltersBar } from "@/components/dashboard/filters-bar"
 import { KpiCard } from "@/components/dashboard/kpi-card"
 import { EstadoChart } from "@/components/dashboard/estado-chart"
@@ -10,11 +11,18 @@ import { CentroChart } from "@/components/dashboard/centro-chart"
 import { EspecialidadChart } from "@/components/dashboard/especialidad-chart"
 import { CoberturaChart } from "@/components/dashboard/cobertura-chart"
 import { TurnosTable } from "@/components/dashboard/turnos-table"
+
+import { EspecialidadesView } from "@/components/dashboard/especialidades-view"
+import { CoberturasView } from "@/components/dashboard/coberturas-view"
+
 import { uniqueValues } from "@/lib/helpers"
-import { FileText, CheckCircle, TrendingUp, Stethoscope, Loader2 } from "lucide-react"
+import { FileText, CheckCircle, TrendingUp, Stethoscope, Loader2, Layers, Shield } from "lucide-react"
+import { Button } from "@/components/ui/button"
 
 const API_URL =
   "https://script.google.com/macros/s/AKfycbzhiojoUmJ4rmkDkDLyMPOxZ21J8vfVXFHF9BEi1y8k2gIOqn_Ci8PyxFMtbLFDI-1IZg/exec"
+
+type ViewMode = "dashboard" | "especialidades" | "coberturas"
 
 function shiftMonth(ymd: string, deltaMonths: number) {
   // ymd: YYYY-MM-DD
@@ -29,16 +37,19 @@ function shiftMonth(ymd: string, deltaMonths: number) {
 
 function percentChange(curr: number, prev: number) {
   if (!Number.isFinite(curr) || !Number.isFinite(prev)) return null
-  if (prev === 0) return null // evitamos infinito; no mostramos comparación
+  if (prev === 0) return null
   return ((curr - prev) / prev) * 100
 }
 
 export default function DashboardPage() {
   const [data, setData] = useState<Turno[]>([])
   const [prevData, setPrevData] = useState<Turno[] | null>(null)
+
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+
   const [filters, setFilters] = useState<FilterParams>({})
+  const [view, setView] = useState<ViewMode>("dashboard")
 
   const buildUrl = (filterParams: FilterParams = {}) => {
     const params = new URLSearchParams()
@@ -46,7 +57,7 @@ export default function DashboardPage() {
     if (filterParams.from) params.set("from", filterParams.from)
     if (filterParams.to) params.set("to", filterParams.to)
 
-    // ✅ Backend espera CSV (no repetir query params)
+    // ✅ Backend espera CSV
     if (filterParams.centro?.length) params.set("centro", filterParams.centro.join(","))
     if (filterParams.especialidad?.length) params.set("especialidad", filterParams.especialidad.join(","))
     if (filterParams.estado?.length) params.set("estado", filterParams.estado.join(","))
@@ -70,7 +81,7 @@ export default function DashboardPage() {
 
       setData(result.data)
 
-      // 2) período anterior (mismo rango -1 mes) SOLO si hay from + to
+      // 2) período anterior: mismo rango -1 mes
       if (filterParams.from && filterParams.to) {
         const prevFilters: FilterParams = {
           ...filterParams,
@@ -80,6 +91,7 @@ export default function DashboardPage() {
 
         const prevUrl = buildUrl(prevFilters)
         const prevResp = await fetch(prevUrl)
+
         if (!prevResp.ok) throw new Error("Error al cargar datos del mes anterior")
 
         const prevResult: ApiResponse = await prevResp.json()
@@ -101,21 +113,16 @@ export default function DashboardPage() {
     fetchData()
   }, [])
 
-  const allData = useMemo(() => data, [data])
-
-  // Opciones de filtros (se recalculan sobre data actual)
-  const centros = useMemo(() => uniqueValues(allData, "centro"), [allData])
-  const especialidades = useMemo(() => uniqueValues(allData, "especialidad"), [allData])
-  const estados = useMemo(() => uniqueValues(allData, "estado"), [allData])
+  const centros = useMemo(() => uniqueValues(data, "centro"), [data])
+  const especialidades = useMemo(() => uniqueValues(data, "especialidad"), [data])
+  const estados = useMemo(() => uniqueValues(data, "estado"), [data])
 
   const kpis = useMemo(() => {
-    // actuales
     const totalSolicitudes = data.length
     const turnosConfirmados = data.filter((t) => (t.estado || "").toLowerCase().includes("asignado")).length
     const tasaConversionNum = totalSolicitudes > 0 ? (turnosConfirmados / totalSolicitudes) * 100 : 0
     const especialidadesActivas = uniqueValues(data, "especialidad").length
 
-    // prev si corresponde
     const hasComparison = !!(filters.from && filters.to && prevData)
 
     const prevTotal = prevData ? prevData.length : 0
@@ -128,8 +135,8 @@ export default function DashboardPage() {
     return {
       totalSolicitudes,
       turnosConfirmados,
-      tasaConversion: tasaConversionNum.toFixed(1), // para mostrar
-      tasaConversionNum, // para comparar
+      tasaConversion: tasaConversionNum.toFixed(1),
+      tasaConversionNum,
       especialidadesActivas,
       hasComparison,
       comparisons: {
@@ -164,89 +171,126 @@ export default function DashboardPage() {
   return (
     <div className="min-h-screen bg-background">
       <div className="container mx-auto space-y-6 p-6 lg:p-8">
-        <div className="space-y-2">
-          <h1 className="text-3xl font-bold tracking-tight text-balance">
-            Gestión de <span className="text-primary">Centros Médicos</span>
-          </h1>
-          <p className="text-muted-foreground">Gestión y análisis de solicitudes de turnos médicos</p>
+        {/* Header */}
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div className="space-y-2">
+            <h1 className="text-3xl font-bold tracking-tight text-balance">
+              Gestión de <span className="text-primary">Centros Médicos</span>
+            </h1>
+            <p className="text-muted-foreground">Gestión y análisis de solicitudes de turnos médicos</p>
+          </div>
+
+          <div className="flex gap-2 sm:pt-1">
+            <Button
+              variant={view === "dashboard" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setView("dashboard")}
+            >
+              Volver
+            </Button>
+
+            <Button
+              variant={view === "especialidades" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setView("especialidades")}
+            >
+              <Layers className="mr-2 h-4 w-4" />
+              Especialidades
+            </Button>
+
+            <Button
+              variant={view === "coberturas" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setView("coberturas")}
+            >
+              <Shield className="mr-2 h-4 w-4" />
+              Coberturas
+            </Button>
+          </div>
         </div>
 
-        <FiltersBar
-          centros={centros}
-          especialidades={especialidades}
-          estados={estados}
-          onApplyFilters={handleApplyFilters}
-          onClearFilters={handleClearFilters}
-        />
-
-        {loading ? (
-          <div className="flex items-center justify-center py-12">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          </div>
-        ) : (
+        {/* Dashboard */}
+        {view === "dashboard" && (
           <>
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-              <KpiCard
-                title="Total de solicitudes"
-                value={kpis.totalSolicitudes.toLocaleString()}
-                icon={FileText}
-                comparison={
-                  kpis.hasComparison && kpis.comparisons.totalSolicitudes !== null
-                    ? { percentChange: kpis.comparisons.totalSolicitudes, label: "vs mes anterior" }
-                    : null
-                }
-              />
+            <FiltersBar
+              centros={centros}
+              especialidades={especialidades}
+              estados={estados}
+              onApplyFilters={handleApplyFilters}
+              onClearFilters={handleClearFilters}
+            />
 
-              <KpiCard
-                title="Turnos confirmados"
-                value={kpis.turnosConfirmados.toLocaleString()}
-                icon={CheckCircle}
-                comparison={
-                  kpis.hasComparison && kpis.comparisons.turnosConfirmados !== null
-                    ? { percentChange: kpis.comparisons.turnosConfirmados, label: "vs mes anterior" }
-                    : null
-                }
-              />
-
-              <KpiCard
-                title="Tasa de conversión"
-                value={`${kpis.tasaConversion}%`}
-                icon={TrendingUp}
-                comparison={
-                  kpis.hasComparison && kpis.comparisons.tasaConversion !== null
-                    ? { percentChange: kpis.comparisons.tasaConversion, label: "vs mes anterior" }
-                    : null
-                }
-              />
-
-              <KpiCard
-                title="Especialidades activas"
-                value={kpis.especialidadesActivas}
-                icon={Stethoscope}
-              />
-            </div>
-
-              {/* Charts */}
-              <div className="grid gap-4 lg:grid-cols-2">
-                <CentroChart data={data} />
-                <EstadoChart data={data} />
+            {loading ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
               </div>
+            ) : (
+              <>
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                  <KpiCard
+                    title="Total de solicitudes"
+                    value={kpis.totalSolicitudes.toLocaleString()}
+                    icon={FileText}
+                    comparison={
+                      kpis.hasComparison && kpis.comparisons.totalSolicitudes !== null
+                        ? { percentChange: kpis.comparisons.totalSolicitudes, label: "vs mes anterior" }
+                        : null
+                    }
+                  />
 
-              <div className="grid gap-4 lg:grid-cols-2">
-                <CoberturaChart data={data} />
-                <EspecialidadChart data={data} />
-              </div>
+                  <KpiCard
+                    title="Turnos confirmados"
+                    value={kpis.turnosConfirmados.toLocaleString()}
+                    icon={CheckCircle}
+                    comparison={
+                      kpis.hasComparison && kpis.comparisons.turnosConfirmados !== null
+                        ? { percentChange: kpis.comparisons.turnosConfirmados, label: "vs mes anterior" }
+                        : null
+                    }
+                  />
 
-              {/* ✅ Full width: Timeline */}
-              <div className="grid gap-4">
-                <TimelineChart data={data} />
-              </div>
+                  <KpiCard
+                    title="Tasa de conversión"
+                    value={`${kpis.tasaConversion}%`}
+                    icon={TrendingUp}
+                    comparison={
+                      kpis.hasComparison && kpis.comparisons.tasaConversion !== null
+                        ? { percentChange: kpis.comparisons.tasaConversion, label: "vs mes anterior" }
+                        : null
+                    }
+                  />
 
-              {/* Tabla */}
-              <TurnosTable data={data} />
+                  <KpiCard title="Especialidades activas" value={kpis.especialidadesActivas} icon={Stethoscope} />
+                </div>
 
+                {/* Charts */}
+                <div className="grid gap-4 lg:grid-cols-2">
+                  <CentroChart data={data} />
+                  <EstadoChart data={data} />
+                </div>
+
+                <div className="grid gap-4 lg:grid-cols-2">
+                  <CoberturaChart data={data} />
+                  <EspecialidadChart data={data} />
+                </div>
+
+                {/* Full width timeline */}
+                <div className="grid gap-4">
+                  <TimelineChart data={data} />
+                </div>
+
+                {/* Table */}
+                <TurnosTable data={data} />
+              </>
+            )}
           </>
         )}
+
+        {/* Especialidades */}
+        {view === "especialidades" && <EspecialidadesView />}
+
+        {/* Coberturas */}
+        {view === "coberturas" && <CoberturasView />}
       </div>
     </div>
   )
