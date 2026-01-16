@@ -19,10 +19,32 @@ const API_BASE =
 
 type RowObj = Record<string, any>
 
-function toStr(v: any) {
+function isTruthyString(s: string) {
+  const v = s.trim().toLowerCase()
+  return v === "true" || v === "si" || v === "sí" || v === "yes" || v === "1"
+}
+function isFalsyString(s: string) {
+  const v = s.trim().toLowerCase()
+  return v === "false" || v === "no" || v === "0"
+}
+
+function formatCell(v: any) {
   if (v === null || v === undefined) return ""
-  if (typeof v === "string") return v
-  if (typeof v === "number" || typeof v === "boolean") return String(v)
+
+  if (typeof v === "boolean") return v ? "✅" : "❌"
+
+  if (typeof v === "number") {
+    if (v === 1) return "✅"
+    if (v === 0) return "❌"
+    return String(v)
+  }
+
+  if (typeof v === "string") {
+    if (isTruthyString(v)) return "✅"
+    if (isFalsyString(v)) return "❌"
+    return v
+  }
+
   try {
     return JSON.stringify(v)
   } catch {
@@ -42,7 +64,9 @@ export function CoberturasView() {
   const [rows, setRows] = useState<RowObj[]>([])
   const [query, setQuery] = useState("")
   const [page, setPage] = useState(1)
-  const pageSize = 25
+
+  // ✅ más filas por página
+  const pageSize = 100
 
   const [sortKey, setSortKey] = useState<string | null>(null)
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc")
@@ -71,7 +95,7 @@ export function CoberturasView() {
     const q = query.trim().toLowerCase()
     if (!q) return rows
     return rows.filter((r) =>
-      columns.some((c) => toStr(r[c]).toLowerCase().includes(q))
+      columns.some((c) => String(r?.[c] ?? "").toLowerCase().includes(q))
     )
   }, [rows, query, columns])
 
@@ -79,8 +103,8 @@ export function CoberturasView() {
     if (!sortKey) return filtered
     const copy = [...filtered]
     copy.sort((a, b) => {
-      const av = toStr(a[sortKey]).toLowerCase()
-      const bv = toStr(b[sortKey]).toLowerCase()
+      const av = String(a?.[sortKey] ?? "").toLowerCase()
+      const bv = String(b?.[sortKey] ?? "").toLowerCase()
       if (av < bv) return sortDir === "asc" ? -1 : 1
       if (av > bv) return sortDir === "asc" ? 1 : -1
       return 0
@@ -145,15 +169,15 @@ export function CoberturasView() {
                 <TableHeader>
                   <TableRow>
                     {columns.map((c) => (
-                      <TableHead key={c} className="whitespace-nowrap">
+                      <TableHead key={c} className="whitespace-nowrap p-2">
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="h-8 px-2"
+                          className="h-7 px-2 text-xs"
                           onClick={() => toggleSort(c)}
                         >
                           {c}
-                          <ArrowUpDown className="ml-2 h-4 w-4" />
+                          <ArrowUpDown className="ml-2 h-3 w-3" />
                         </Button>
                       </TableHead>
                     ))}
@@ -164,8 +188,8 @@ export function CoberturasView() {
                   {pageRows.map((r, idx) => (
                     <TableRow key={idx}>
                       {columns.map((c) => (
-                        <TableCell key={c} className="align-top whitespace-nowrap">
-                          {toStr(r[c])}
+                        <TableCell key={c} className="whitespace-nowrap p-2 text-xs">
+                          {formatCell(r?.[c])}
                         </TableCell>
                       ))}
                     </TableRow>
@@ -176,7 +200,7 @@ export function CoberturasView() {
 
             <div className="mt-4 flex items-center justify-between">
               <div className="text-xs text-muted-foreground">
-                Página {page} de {totalPages}
+                Página {page} de {totalPages} — {pageSize} por página
               </div>
 
               <div className="flex gap-2">
