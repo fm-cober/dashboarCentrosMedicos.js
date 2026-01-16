@@ -8,6 +8,7 @@ import { EstadoChart } from "@/components/dashboard/estado-chart"
 import { TimelineChart } from "@/components/dashboard/timeline-chart"
 import { CentroChart } from "@/components/dashboard/centro-chart"
 import { EspecialidadChart } from "@/components/dashboard/especialidad-chart"
+import { TurnosSinFechaChart } from "@/components/dashboard/TurnosSinFechaChart"
 import { TurnosTable } from "@/components/dashboard/turnos-table"
 import { uniqueValues } from "@/lib/helpers"
 import { FileText, CheckCircle, TrendingUp, Stethoscope, Loader2 } from "lucide-react"
@@ -225,17 +226,25 @@ export default function DashboardPage() {
               />
             </div>
 
-            <div className="grid gap-4 lg:grid-cols-2">
-              <EstadoChart data={data} />
-              <TimelineChart data={data} />
-            </div>
+              {/* Charts */}
+              <div className="grid gap-4 lg:grid-cols-2">
+                <EstadoChart data={data} />
+                <CentroChart data={data} />
+              </div>
 
-            <div className="grid gap-4 lg:grid-cols-2">
-              <CentroChart data={data} />
-              <EspecialidadChart data={data} />
-            </div>
+              {/* ✅ Full width: Timeline */}
+              <div className="grid gap-4">
+                <TimelineChart data={data} />
+              </div>
 
-            <TurnosTable data={data} />
+              <div className="grid gap-4 lg:grid-cols-2">
+                <EspecialidadChart data={data} />
+                <TurnosSinFechaChart data={data} />
+              </div>
+
+              {/* Tabla */}
+              <TurnosTable data={data} />
+
           </>
         )}
       </div>
