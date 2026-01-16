@@ -42,7 +42,7 @@ export function TimelineChart({ data }: TimelineChartProps) {
             <Tooltip />
 
             <Line
-              type="monotone"
+              type="linear"
               dataKey="value"
               stroke="#000" // ✅ negro puro (visible)
               strokeWidth={3} // ✅ más gruesa
