@@ -13,8 +13,7 @@ import { uniqueValues } from "@/lib/helpers"
 import { FileText, CheckCircle, TrendingUp, Stethoscope, Loader2 } from "lucide-react"
 
 const API_URL =
-  "https://script.google.com/macros/s/AKfycbyjwSL-s7gDHXiV9dJ1Qb6Fm0V6WTOOMq6dvJyZbflxbQ8tttmsmRBmNCma8Yd4bKiF-A/exec"
-
+"https://script.google.com/macros/s/AKfycbzhiojoUmJ4rmkDkDLyMPOxZ21J8vfVXFHF9BEi1y8k2gIOqn_Ci8PyxFMtbLFDI-1IZg/exec"
 export default function DashboardPage() {
   const [data, setData] = useState<Turno[]>([])
   const [loading, setLoading] = useState(true)
